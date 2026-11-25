@@ -36,22 +36,27 @@ predict_all <- function(input_data) {
 #* @param height:numeric
 #* @param weight:numeric
 #* @param menopause_age:numeric
-function(age, height, weight, menopause_age = NULL) {
+function(age, height, weight, menopause_age = NULL, res) {
 
 
 
     #exclude inputs that does not make sense for the model, throw error if any of these conditions are met
     #later, send warning for inputs that are outside of the training data range, but still within a reasonable range
     if (age < 18 || age > 120) {
-        stop("Age must be between 18 and 120.");
+        res$status <- 400
+        return(list(error = "Age must be between 18 and 120."));
     } else if (height < 100 || height > 250) {
-        stop("Height must be between 100 and 250 cm.");
+        res$status <- 400
+        return(list(error = "Height must be between 100 and 250 cm."));
     } else if (weight < 30 || weight > 300) {
-        stop("Weight must be between 30 and 300 kg.");
+        res$status <- 400
+        return(list(error = "Weight must be between 30 and 300 kg."));
     } else if (!is.null(menopause_age) && (menopause_age < 18 || menopause_age > 65)) {
-        stop("Menopause age must be between 18 and 65.");
+        res$status <- 400
+        return(list(error = "Menopause age must be between 18 and 65."));
     } else if (!is.null(menopause_age) && (menopause_age > age)) {
-        stop("Menopause age cannot exceed current age.");
+        res$status <- 400
+        return(list(error = "Menopause age cannot exceed current age."))
     }
 
     if (is.null(menopause_age)) {
