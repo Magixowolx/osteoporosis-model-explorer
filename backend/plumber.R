@@ -1,6 +1,17 @@
 library(here)
 library(jsonlite)
 
+cors <- function(req, res) {
+    # use * to allow all origins during development
+    res$setHeader("Access-Control-Allow-Origin", "*")
+    res$setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+    res$setHeader("Access-Control-Allow-Headers", "Content-Type")
+    if (req$REQUEST_METHOD == "OPTIONS") {
+        res$status <- 200
+        return(list())
+    }
+    plumber::forward()
+}
 # Load exported parameters aand metadata from JSON
 # JSON allows model information to be accessed independently
 # and not depend on serialized R model objects (.rds files)
@@ -31,12 +42,24 @@ predict_all <- function(input_data) {
     return(predictions)
 }
 
+# return a binary classification based on the cutoff for each outcome
+cutoff_comparison <- function(predictions, cutoffs) {
+    results <- list()
+    for (outcome in names(predictions)) {
+        results[[outcome]] <- ifelse(predictions[[outcome]] >= cutoffs[[outcome]], 1, 0)
+    }
+    return(results)
+}
+
 #* @post /predict
+
+# allow cutoff choice of sens90 and youden's index
+#* @param cutoff:string
 #* @param age:numeric
 #* @param height:numeric
 #* @param weight:numeric
 #* @param menopause_age:numeric
-function(age, height, weight, menopause_age = NULL, res) {
+function(cutoff, age, height, weight, menopause_age = NULL, res) {
 
 
 
@@ -76,6 +99,6 @@ function(age, height, weight, menopause_age = NULL, res) {
     )
 
 
-    # Return the predictions
-    return(predict_all(input_data))
+    # Return the predictions sens 90
+    return(cutoff_comparison(predict_all(input_data), bundle$cutoffs[[cutoff]]$cutoff))
 }
