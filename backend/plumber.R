@@ -1,6 +1,8 @@
 library(here)
 library(jsonlite)
 
+#* Enable CORS for frontend requests
+#* @filter cors
 cors <- function(req, res) {
     # use * to allow all origins during development
     res$setHeader("Access-Control-Allow-Origin", "*")
@@ -51,17 +53,39 @@ cutoff_comparison <- function(predictions, cutoffs) {
     return(results)
 }
 
-#* @post /predict
 
-# allow cutoff choice of sens90 and youden's index
+# allow cutoff choice of sens90 or youden's index
+
+#* @post /predict
 #* @param cutoff:string
 #* @param age:numeric
 #* @param height:numeric
 #* @param weight:numeric
 #* @param menopause_age:numeric
-function(cutoff, age, height, weight, menopause_age = NULL, res) {
+function(cutoff = "sens90", age = NULL, height = NULL, weight = NULL,
+         menopause_age = NULL, res) {
 
+    age = suppressWarnings(as.numeric(age))
+    height = suppressWarnings(as.numeric(height))
+    weight = suppressWarnings(as.numeric(weight))
+    if (!is.null(menopause_age)) {
+        menopause_age = suppressWarnings(as.numeric(menopause_age))
+    }
 
+    if (length(age) != 1L || !is.finite(age)) {
+        res$status <- 400
+        return(list(error = "Age must be a valid number."))
+    } else if (length(height) != 1L || !is.finite(height)) {
+        res$status <- 400
+        return(list(error = "Height must be a valid number."))
+    } else if (length(weight) != 1L || !is.finite(weight)) {
+        res$status <- 400
+        return(list(error = "Weight must be a valid number."))
+    } else if (!is.null(menopause_age) &&
+               (length(menopause_age) != 1L || !is.finite(menopause_age))) {
+        res$status <- 400
+        return(list(error = "Menopause age must be a valid number."))
+    }
 
     #exclude inputs that does not make sense for the model, throw error if any of these conditions are met
     #later, send warning for inputs that are outside of the training data range, but still within a reasonable range
@@ -98,7 +122,15 @@ function(cutoff, age, height, weight, menopause_age = NULL, res) {
         menopause_age = menopause_age
     )
 
+    probabilities <- predict_all(input_data)
+    #
+    cutoffs <- lapply(bundle$models, function(model_info) {
+        model_info$cutoffs[[cutoff]]$cutoff
+    })
+    classifications <- cutoff_comparison(probabilities, cutoffs)
 
-    # Return the predictions sens 90
-    return(cutoff_comparison(predict_all(input_data), bundle$cutoffs[[cutoff]]$cutoff))
+    list(
+        probabilities = probabilities,
+        classifications = classifications
+    )
 }
