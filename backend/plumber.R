@@ -64,7 +64,7 @@ cutoff_comparison <- function(predictions, cutoffs) {
 #* @param menopause_age:numeric
 function(cutoff = "sens90", age = NULL, height = NULL, weight = NULL,
          menopause_age = NULL, res) {
-
+    
     age = suppressWarnings(as.numeric(age))
     height = suppressWarnings(as.numeric(height))
     weight = suppressWarnings(as.numeric(weight))
@@ -72,6 +72,7 @@ function(cutoff = "sens90", age = NULL, height = NULL, weight = NULL,
         menopause_age = suppressWarnings(as.numeric(menopause_age))
     }
 
+    # validate inputs and return error if any of the inputs are invalid
     if (length(age) != 1L || !is.finite(age)) {
         res$status <- 400
         return(list(error = "Age must be a valid number."))
